@@ -1,0 +1,14 @@
+apiVersion: ds.bloomberg.com/v1
+kind: ComputeJob
+metadata:
+  generateName: cj-
+  namespace: s-dsplatform
+spec:
+  dependencies: {}
+  distributionSpec:
+    single:
+      customImage: >-
+        artifactory.inf.bloomberg.com/dspuser/s-dsplatform/codeserver-training@sha256:11af960d0b9a8501ab3c0059293ca7646be749253896587a561c35f07f0e3744
+      framework: Custom
+      size: GpuLarge
+  module: bloomberg.ds.run_code_server.main

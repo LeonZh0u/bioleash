@@ -1,0 +1,72 @@
+apiVersion: ds.bloomberg.com/v1
+kind: ComputeJob
+metadata:
+  generateName: afaik-test-
+  namespace: s-dsplatform
+spec:
+  arguments:
+    - "--main_process_ip=$(MASTER_ADDR)"
+    - "--main_process_port=29400"
+    - "--mixed_precision=bf16"
+    - "--rdzv_backend=c10d"
+    - "--machine_rank=$(RANK)"
+    - "--num_machines=$(WORLD_SIZE)"
+    - "--num_processes=4" # note, that should be equal to total GPU count in training cluster
+    - "--use_fsdp"
+    - "--fsdp_auto_wrap_policy=TRANSFORMER_BASED_WRAP"
+    - "--fsdp_backward_prefetch_policy=BACKWARD_PRE"
+    - "--fsdp_offload_params=false"
+    - "--fsdp_sharding_strategy=1"
+    - "--fsdp_state_dict_type=FULL_STATE_DICT"
+    - '--fsdp_transformer_layer_cls_to_wrap=MistralDecoderLayer'
+    - '--fsdp_cpu_ram_efficient_loading=false'
+    - "--module"
+    - bloomberg.ai.llm_trainer.train
+    - "--train_file=s3://ckpt-test/mistral-7b/tutti_train.jsonl"
+    - "--eval_file=s3://ckpt-test/mistral-7b/tutti_val.jsonl"
+    - "--model_dir=s3://ckpt-test/mistral-7b/"
+    - "--save_dir=s3://ckpt-test/afaik-mistral-7b-$(DSP_JOB_NAME)/"
+    - "--save_strategy=steps"
+    - "--save_steps=13500"
+    - "--eval_steps=500"
+    - "--num_train_epochs=1.0"
+    - "--per_device_train_batch_size=1"
+    - "--per_device_eval_batch_size=1"
+    - "--gradient_accumulation_steps=4"
+    - "--do_train"
+    - "--optim=adamw_hf"
+    - "--fast=True"
+    ### parameters from the paper
+    - "--learning_rate=3e-4"
+    - "--adam_beta1=0.9"
+    - "--adam_beta2=0.95"
+    - "--adam_epsilon=1e-5"
+    - "--weight_decay=0.1"
+    - "--warmup_steps=1000"
+    - "--verbose=True"
+    - "--disable_tqdm=False"
+    - "--logging_strategy=steps"
+    - "--logging_first_step=True"
+    - "--logging_steps=10"
+    - "--max_steps=25"
+    - "--gradient_checkpointing=True"
+    - "--benchmark=True"
+    - "--benchmarking_steps=1"
+    - "--pack_seq_len=4096"
+    - "--low_cpu_mem_usage=True"
+  distributionSpec:
+    distributedPytorch:
+      customWorkerResources:
+        cores: 16
+        gpus: 4
+        memory: 400Gi
+      framework: Custom
+      customImage: artifactory.inf.bloomberg.com/hpcusers/s-ailm/llm-trainer-hpc-deps
+      numWorkers: 1
+  envVars:
+    - name: NCCL_DEBUG
+      value: WARN
+  identities:
+    - bcs:
+        id: ckpt-test-bcs-identity
+  module: accelerate.commands.launch

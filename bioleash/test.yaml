@@ -1,0 +1,37 @@
+apiVersion: ds.bloomberg.com/v1
+kind: ComputeJob
+metadata:
+  generateName: test-
+  namespace: s-dsplatform
+spec:
+  arguments:
+   - "--data_dir=/job"
+   - "--model_dir=/job"
+   - "--num_workers=0"
+   - "--max_epochs=2"
+   - "--train_file=train_df.parquet"
+   - "--validation_file=val_df.parquet"
+   - "--test_file=test.parquet"
+  distributionSpec:
+    single:
+      customImage: artifactory.inf.bloomberg.com/dspuser/s-dsplatform/bioleash
+      framework: Custom
+      customResources:
+        cores: 12
+        gpus: 1
+        memory: "128Gi"
+        sharedMemory: 1Gi
+  identities:
+    - bcs:
+        id: ckpt-test-bcs-identity
+  envVars:
+    # commented envvars for debug purposes
+    #- name: CUDA_LAUNCH_BLOCKING
+    #  value: '1'
+    #- name: NCCL_DEBUG_SUBSYS
+    #  value: 'ALL'
+    #- name: TORCH_DISTRIBUTED_DEBUG
+    #  value: 'INFO'
+    - name: TOKENIZERS_PARALLELISM
+      value: 'False'
+  module: bloomberg.ds.bioleash.train
